@@ -83,10 +83,17 @@ public:
         bkgColors["Top"] = kBlue;
         bkgColors["Fake"] = kViolet+2;
 
-        bkgMap = {{"QCD","Fake"}, {"WJets_MG", "WJets"}, {"WW_pythia", "EWK"}, {"WZ_pythia", "EWK"}, {"ZZ_pythia", "EWK"}, {"DYJets10to50ToTauTau","EWK"}, {"DYJetsToTauTau","EWK"}, 
+        bkgMap = {{"WJet", "Fake"},{"QCD","Fake"}, {"WJets_MG", "WJets"}, {"WW_pythia", "EWK"}, {"WZ_pythia", "EWK"}, {"ZZ_pythia", "EWK"}, {"DYJets10to50ToTauTau","EWK"}, {"DYJetsToTauTau","EWK"}, 
                   {"TTLL_powheg", "Top"}, {"SingleTop_tW_top_Incl", "Top"}, {"SingleTop_tW_antitop_Incl", "Top"}};
+        
 
-        bkgNames ={"QCD", "WJets_MG", "WW_pythia", "WZ_pythia", "ZZ_pythia", "DYJets10to50ToTauTau", "DYJetsToTauTau", "TTLL_powheg", "SingleTop_tW_top_Incl", "SingleTop_tW_antitop_Incl"};
+        bkgNames ={"WJet", "QCD", "WJets_MG", "WW_pythia", "WZ_pythia", "ZZ_pythia", "DYJets10to50ToTauTau", "DYJetsToTauTau", "TTLL_powheg", "SingleTop_tW_top_Incl", "SingleTop_tW_antitop_Incl"};
+
+        // Without WJets
+        //bkgMap = {{"WJet", "Fake"},{"QCD","Fake"}, {"WW_pythia", "EWK"}, {"WZ_pythia", "EWK"}, {"ZZ_pythia", "EWK"}, {"DYJets10to50ToTauTau","EWK"}, {"DYJetsToTauTau","EWK"}, 
+        //          {"TTLL_powheg", "Top"}, {"SingleTop_tW_top_Incl", "Top"}, {"SingleTop_tW_antitop_Incl", "Top"}};
+        
+        //bkgNames ={"WJet", "QCD", "WW_pythia", "WZ_pythia", "ZZ_pythia", "DYJets10to50ToTauTau", "DYJetsToTauTau", "TTLL_powheg", "SingleTop_tW_top_Incl", "SingleTop_tW_antitop_Incl"};
 
         isEstimation = isEstimation_;
     

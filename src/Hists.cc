@@ -44,8 +44,8 @@ TCanvas* Hists::drawHists(TString steering, bool useAxis)
     pad1->SetTopMargin(0.1);
     pad1->SetTicks(1);
     pad1->SetLogy();
-    if(var=="Mass")
-        pad1->SetLogx();
+    //if(var=="Mass")
+    //    pad1->SetLogx();
     pad1->Draw();
     pad1->cd();
 
@@ -85,8 +85,8 @@ TCanvas* Hists::drawHists(TString steering, bool useAxis)
     TPad *pad2 = new TPad("pad2","pad2",0,0,1,0.3);
     pad2->SetTopMargin(0.05);
     pad2->SetBottomMargin(0.2);
-    if(var=="Mass")
-        pad2->SetLogx();
+    //if(var=="Mass")
+    //    pad2->SetLogx();
     pad2->SetTicks(1);
     pad2->SetGridy(1);
     pad2->Draw();
@@ -250,7 +250,7 @@ void Hists::saveFakeEstimation()
     TDirectory* dir = fout->mkdir(histDir+"/"+var);
     TDirectory* pdir = dir->GetDirectory(var); 
     pdir->cd();
-    hFakeEstimation->SetName("histo_QCDnominal");
+    hFakeEstimation->SetName("histo_WJetnominal");
     hFakeEstimation->Write();
 
     fout->Close();
