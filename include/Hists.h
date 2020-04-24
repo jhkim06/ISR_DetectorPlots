@@ -36,6 +36,7 @@ private:
 
     // Bin definitions
     TUnfoldBinning* binDef = NULL;
+    std::vector<double> massBinEdges;
 
     std::vector<TString> bkgNames; // Backgroud Name
     std::vector<TString> bkgTypes; // Backgroud Type
@@ -75,7 +76,14 @@ public:
 
         // FIXME Update for pt
         TString binPath = histDir + "/" + var + "/" + "Rec_Mass";
+        if(var=="Pt")
+        {
+            binPath = histDir + "/" + var + "/" + "Rec_Pt";
+        }
+
         binDef = (TUnfoldBinning*)inFile->Get(binPath);
+
+        if(var=="Pt") setMassBindEdges();
 
         // Fill colors for backgrounds
         bkgColors["WJets"] = kViolet+1;
@@ -99,6 +107,8 @@ public:
     
     }
     ~Hists(){}
+
+    void setMassBindEdges();
 
     // Set Data histogram
     void setDataHist();
@@ -130,7 +140,8 @@ public:
         return hFakeEstimation;
     }
 
-    void saveFakeEstimation();
+    void fillHistogram(TH1& hTarget, TH1& hSource, TString bin);
+    void saveFakeEstimation(TString outHistName, TString bin = "");
 
     // Draw
     void setTHStack(THStack& hs, TH1& hMCtotal, TString steering, bool useAxis);

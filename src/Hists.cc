@@ -1,5 +1,26 @@
 #include "../include/Hists.h"
 
+void Hists::setMassBindEdges()
+{
+    const TVectorD* temp_tvecd = binDef->GetDistributionBinning(1);
+    const Double_t* massBins = temp_tvecd->GetMatrixArray();
+    int nMassBinEdges = temp_tvecd->GetNrows();
+
+    if(massBinEdges.size() == 0)
+    {
+        for(int i = 0 ; i < nMassBinEdges; i++)
+        {
+            massBinEdges.push_back(massBins[i]);
+            cout << i << " th mass bin edge: " << massBins[i] << endl;
+        }
+    }
+    else
+    {
+        cout << "Hists::setMassBindEdges massBinEdges already set." << endl;
+    }
+
+}
+
 void Hists::setDataHist()
 {
     cout << "Hists::setDataHist " << endl;
@@ -30,10 +51,12 @@ TCanvas* Hists::drawHists(TString steering, bool useAxis)
     TH1* hMCtotal = NULL;
     TH1* hRatio = NULL;
 
+    cout << "Hists::drawHists get Data and MC histograms" << endl;
     hData = getRawHist("histo_DoubleMuonnominal", "Data", steering, useAxis);
     hMCSig = getRawHist("histo_DYJetsToMuMunominal", "Signal", steering, useAxis);
     hMCtotal = (TH1*) hMCSig->Clone("hMCtotal");
     hRatio = (TH1*) hData->Clone("hRatio");
+    
 
     TCanvas* c_out = new TCanvas("detector_level", "detector_level", 50, 50, 800, 700);
     c_out->Draw();
@@ -44,8 +67,8 @@ TCanvas* Hists::drawHists(TString steering, bool useAxis)
     pad1->SetTopMargin(0.1);
     pad1->SetTicks(1);
     pad1->SetLogy();
-    //if(var=="Mass")
-    //    pad1->SetLogx();
+    if(var=="Mass")
+        pad1->SetLogx();
     pad1->Draw();
     pad1->cd();
 
@@ -62,7 +85,9 @@ TCanvas* Hists::drawHists(TString steering, bool useAxis)
     hMCSig->SetFillColor(kYellow);
 
     THStack* hsMC = new THStack("hsMC", "hsMC");
+    cout << "Set THStack" << endl;
     setTHStack(*hsMC, *hMCtotal, steering, useAxis);
+    cout << "Done set THStack" << endl;
     hsMC->Add(hMCSig);
 
     hsMC->Draw("hist same");
@@ -85,8 +110,8 @@ TCanvas* Hists::drawHists(TString steering, bool useAxis)
     TPad *pad2 = new TPad("pad2","pad2",0,0,1,0.3);
     pad2->SetTopMargin(0.05);
     pad2->SetBottomMargin(0.2);
-    //if(var=="Mass")
-    //    pad2->SetLogx();
+    if(var=="Mass")
+        pad2->SetLogx();
     pad2->SetTicks(1);
     pad2->SetGridy(1);
     pad2->Draw();
@@ -100,8 +125,8 @@ TCanvas* Hists::drawHists(TString steering, bool useAxis)
     hRatio->SetLineColor(kBlack);
     hRatio->GetYaxis()->SetTitle("Data/MC");
 
-    hRatio->SetMinimum(0.7);
-    hRatio->SetMaximum(1.3);
+    hRatio->SetMinimum(0.5);
+    hRatio->SetMaximum(1.5);
 
     c_out->cd();
     c_out->SaveAs("detector_"+var+".pdf");
@@ -120,7 +145,7 @@ TH1* Hists::getFakeTemplate(bool doSmooth)
     if(doSmooth)
         hFakeTemplate->Smooth();
 
-    return hFakeTemplate; 
+    return hFakeTemplate;
 }
 
 void Hists::doDijetTemplateFit(TH1* hFakeTemplate, TString steering, bool useAxis)
@@ -135,6 +160,11 @@ void Hists::doDijetTemplateFit(TH1* hFakeTemplate, TString steering, bool useAxi
         minFitRange = binDef->GetGlobalBinNumber(15.01, 10.);
         maxFitRange = binDef->GetGlobalBinNumber(199.99, 10.);
         cout << "min: " << minFitRange << " max: " << maxFitRange << endl;
+    }
+    else
+    {
+        minFitRange = 1.;
+        maxFitRange = 9.;
     }
 
     RooRealVar fitVar(var, var, minFitRange, maxFitRange);
@@ -223,11 +253,11 @@ void Hists::doDijetTemplateFit(TH1* hFakeTemplate, TString steering, bool useAxi
 
     TH1D *h_data_ = (TH1D*) h_MC->Clone("h_data_");
     for(int ibin = 1; ibin < h_MC->GetNbinsX()+1; ibin++)
-    {   
+    {
         h_data_->SetBinContent(ibin, hData->GetBinContent(ibin));
         h_data_->SetBinError(ibin, hData->GetBinError(ibin));
     }
-    
+
     //Make ratio plot
     TH1D *h_ratio = (TH1D*)h_data_->Clone("ratio");
     h_ratio->Divide(h_data_, h_MC);
@@ -243,17 +273,65 @@ void Hists::doDijetTemplateFit(TH1* hFakeTemplate, TString steering, bool useAxi
     h_ratio->Draw("p");
 }
 
-void Hists::saveFakeEstimation()
+void Hists::saveFakeEstimation(TString outHistName, TString bin)
 {
-    TFile* fout = new TFile("Fake.root","recreate");
+
+    TFile* fout = new TFile("Fake.root","UPDATE");
     fout->cd();
-    TDirectory* dir = fout->mkdir(histDir+"/"+var);
-    TDirectory* pdir = dir->GetDirectory(var); 
-    pdir->cd();
-    hFakeEstimation->SetName("histo_WJetnominal");
-    hFakeEstimation->Write();
+    TDirectory* dir = fout->GetDirectory(histDir+"/"+var);
+    if(dir == nullptr)
+    {
+        cout << "Directory not exist. " << endl;
+        dir = fout->mkdir(histDir+"/"+var);
+        dir = dir->GetDirectory(var);
+        dir->cd();
+
+    }
+    else
+    {
+        cout << "Directory exits" << endl;
+        dir->cd();
+    }
+
+    if(var=="Pt")
+    {
+        TH1* htemp = NULL;
+        if(dir->Get(outHistName))
+        {
+            // Update existing histogram
+            cout << outHistName << " exist." << endl;
+            htemp = (TH1*) dir->Get(outHistName);
+            fillHistogram(*htemp, *hFakeEstimation, bin);
+        }
+        else
+        {
+            // Create histogram
+            htemp = binDef->CreateHistogram(outHistName);
+            fillHistogram(*htemp, *hFakeEstimation, bin);
+        }
+        htemp->Write();
+
+    }
+    else
+    {
+        hFakeEstimation->SetName(outHistName);
+        hFakeEstimation->Write();
+    }
 
     fout->Close();
+}
+
+void Hists::fillHistogram(TH1& hTarget, TH1& hSource, TString bin)
+{
+    int NbinSource = hSource.GetNbinsX();
+
+    int nthMassBin = bin.Atoi();
+    int firstTargetBin = binDef->GetGlobalBinNumber(0., massBinEdges[nthMassBin]); 
+    for(int i = 0; i < NbinSource; i++)
+    {
+        hTarget.SetBinContent(firstTargetBin+i, hSource.GetBinContent(i+1));
+        hTarget.SetBinError(firstTargetBin+i, hSource.GetBinError(i+1));
+    }
 }
 
 TH1* Hists::getSummedHists(TString bkgType, TString steering, bool useAxis)
@@ -293,6 +371,8 @@ void Hists::setTHStack(THStack& hs, TH1& hMCtotal, TString steering, bool useAxi
     cout << "N bkg: " << bkgSize << endl;
     for(int i = 0; i < bkgSize; i++)
     {
+        if(!isEstimation && bkgNames[i] == "WJets_MG") continue;
+
         map<TString, int>::iterator it = bkgTypeN.find(bkgTypes[i]);
         if(it != bkgTypeN.end())
         {
@@ -304,6 +384,7 @@ void Hists::setTHStack(THStack& hs, TH1& hMCtotal, TString steering, bool useAxi
             bkgTypeN[bkgTypes[i]] = 1;
         }
     }
+    cout << "All bkg types set" << endl;
 
     TH1* htemp = NULL;
     bool isFirstBkg = true;
@@ -311,9 +392,11 @@ void Hists::setTHStack(THStack& hs, TH1& hMCtotal, TString steering, bool useAxi
 
     for(int i = 0; i < bkgSize; i++)
     {
+        if(!isEstimation && bkgNames[i] == "WJets_MG") continue;
+        cout << i << " " << "histo_"+bkgNames[i]+"nominal" << endl;
         if(isEstimation && bkgTypes[i] == "Fake")
             continue;
-        
+
         if(isFirstBkg)
         {
             htemp = getRawHist("histo_"+bkgNames[i]+"nominal", "h"+bkgNames[i], steering, useAxis);
