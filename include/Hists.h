@@ -71,7 +71,13 @@ public:
         if(channel == "Muon")
         {
             channel_postfixMC = "MuMu";
-            channel_postfixData = "Muon";
+            channel_postfixData = "DoubleMuon";
+        }
+        else
+        {
+            channel_postfixMC = "EE";
+            //channel_postfixData = "DoubleEG";
+            channel_postfixData = "EGamma";
         }
 
         // FIXME Update for pt
@@ -91,17 +97,27 @@ public:
         bkgColors["Top"] = kBlue;
         bkgColors["Fake"] = kViolet+2;
 
-        bkgMap = {{"WJet", "Fake"},{"QCD","Fake"}, {"WJets_MG", "WJets"}, {"WW_pythia", "EWK"}, {"WZ_pythia", "EWK"}, {"ZZ_pythia", "EWK"}, {"DYJets10to50ToTauTau","EWK"}, {"DYJetsToTauTau","EWK"}, 
-                  {"TTLL_powheg", "Top"}, {"SingleTop_tW_top_Incl", "Top"}, {"SingleTop_tW_antitop_Incl", "Top"}};
+        // No sigle Top samples
+        bkgMap = {{"WJet", "Fake"},{"QCD","Fake"}, {"WW_pythia", "EWK"}, {"WZ_pythia", "EWK"}, {"ZZ_pythia", "EWK"}, {"DYJets10to50ToTauTau","EWK"}, {"DYJetsToTauTau","EWK"}, 
+                 {"TTLL_powheg", "Top"}};
         
-
-        bkgNames ={"WJet", "QCD", "WJets_MG", "WW_pythia", "WZ_pythia", "ZZ_pythia", "DYJets10to50ToTauTau", "DYJetsToTauTau", "TTLL_powheg", "SingleTop_tW_top_Incl", "SingleTop_tW_antitop_Incl"};
-
-        // Without WJets
+        bkgNames ={"WJet", "QCD", "WW_pythia", "WZ_pythia", "ZZ_pythia", "DYJets10to50ToTauTau", "DYJetsToTauTau", "TTLL_powheg"};
+        
         //bkgMap = {{"WJet", "Fake"},{"QCD","Fake"}, {"WW_pythia", "EWK"}, {"WZ_pythia", "EWK"}, {"ZZ_pythia", "EWK"}, {"DYJets10to50ToTauTau","EWK"}, {"DYJetsToTauTau","EWK"}, 
-        //          {"TTLL_powheg", "Top"}, {"SingleTop_tW_top_Incl", "Top"}, {"SingleTop_tW_antitop_Incl", "Top"}};
+        //         {"TTLL_powheg", "Top"}, {"SingleTop_tW_top_Incl", "Top"}, {"SingleTop_tW_antitop_Incl", "Top"}};
         
         //bkgNames ={"WJet", "QCD", "WW_pythia", "WZ_pythia", "ZZ_pythia", "DYJets10to50ToTauTau", "DYJetsToTauTau", "TTLL_powheg", "SingleTop_tW_top_Incl", "SingleTop_tW_antitop_Incl"};
+
+        // Without Fake (for fake estimation)
+        //bkgMap = {{"WJets_MG", "WJets"}, {"WW_pythia", "EWK"}, {"WZ_pythia", "EWK"}, {"ZZ_pythia", "EWK"}, {"DYJets10to50ToTauTau","EWK"}, {"DYJetsToTauTau","EWK"}, 
+        //          {"TTLL_powheg", "Top"}, {"SingleTop_tW_top_Incl", "Top"}, {"SingleTop_tW_antitop_Incl", "Top"}};
+        
+        //bkgNames ={"WJets_MG", "WW_pythia", "WZ_pythia", "ZZ_pythia", "DYJets10to50ToTauTau", "DYJetsToTauTau", "TTLL_powheg", "SingleTop_tW_top_Incl", "SingleTop_tW_antitop_Incl"};
+
+        //bkgMap = {{"WJets_MG", "WJets"}, {"WW_pythia", "EWK"}, {"WZ_pythia", "EWK"}, {"ZZ_pythia", "EWK"}, {"DYJets10to50ToTauTau","EWK"}, {"DYJetsToTauTau","EWK"}, 
+        //          {"TTLL_powheg", "Top"} };
+        
+        //bkgNames ={"WJets_MG", "WW_pythia", "WZ_pythia", "ZZ_pythia", "DYJets10to50ToTauTau", "DYJetsToTauTau", "TTLL_powheg"};
 
         isEstimation = isEstimation_;
     
@@ -121,7 +137,7 @@ public:
     TH1* getSummedHists(TString bkgTypes, TString steering, bool useAxis);
 
     // return Data-MC
-    TH1* getFakeTemplate(bool doSmooth = false);
+    TH1* getFakeTemplate(bool doSmooth = false, double scale = 1.0);
 
     // Template fits
     void doDijetTemplateFit(TH1* hFakeTemplate, TString steering, bool useAxis);
@@ -144,9 +160,9 @@ public:
     void saveFakeEstimation(TString outHistName, TString bin = "");
 
     // Draw
-    void setTHStack(THStack& hs, TH1& hMCtotal, TString steering, bool useAxis);
+    void setTHStack(THStack& hs, TH1& hMCtotal, TLegend& leg, TString steering, bool useAxis);
     TH1* getRawHist(TString histName, TString outHistName, TString steering, bool useAxis);
-    TCanvas* drawHists(TString steering, bool useAxis);
+    TCanvas* drawHists(TString steering, bool useAxis, TString postfix = "");
 };
 
 #endif

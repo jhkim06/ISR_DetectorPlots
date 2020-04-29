@@ -1,7 +1,9 @@
 
 void validation(TString var = "Mass")
 {
-    Hists detector = Hists("/home/jhkim/ISR_Run2/fake/FakeRate/data/unfold_input_Muon_alpha_fake.root", "Detector", "muon", var, false);
+    Hists detector = Hists("/home/jhkim/ISR_Run2/fake/FakeRate/data/muon/unfold_input_Muon_fake.root", "Detector", "Muon", var, false);
+    //Hists detector = Hists("/home/jhkim/ISR_Run2/fake/FakeRate/data/muon/unfold_input_Muon_fake.root", "Detector", "Muon", var, false);
+    //Hists detector = Hists("/home/jhkim/ISR_Run2/fake/FakeRate/data/muon/2017/unfold_input_Muon_ZptCorr_fake.root", "Detector", "Muon", var, false);
 
     detector.setMCHistInfo();
 

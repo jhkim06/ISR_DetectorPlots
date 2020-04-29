@@ -1,10 +1,10 @@
 void Pt_Test(TString massBin = "0")
 {
-    //Hists opposite_sign = Hists("/home/jhkim/ISR_Run2/fake/dijet/electron/2016/data/LL_OS_.root", "Detector", "Muon", "Pt", true);
-    //Hists same_sign = Hists("/home/jhkim/ISR_Run2/fake/dijet/electron/2016/data/LL_SS_.root", "detector_level", "Muon", "Pt", true);
+    Hists opposite_sign = Hists("/home/jhkim/ISR_Run2/fake/FakeRate/data/muon/2018/LL_OS.root", "Detector", "Muon", "Pt", true);
+    Hists same_sign = Hists("/home/jhkim/ISR_Run2/fake/FakeRate/data/muon/2018/LL_SS.root", "detector_level", "Muon", "Pt", true);
 
-    Hists opposite_sign = Hists("/home/jhkim/ISR_Run2/fake/FakeRate/data/TL_OS_.root", "Detector", "Muon", "Pt", true);
-    Hists same_sign = Hists("/home/jhkim/ISR_Run2/fake/FakeRate/data/TL_SS_.root", "Detector", "Muon", "Pt", true);
+    //Hists opposite_sign = Hists("/home/jhkim/ISR_Run2/fake/FakeRate/data/muon/2018/TL_OS.root", "Detector", "Muon", "Pt", true);
+    //Hists same_sign = Hists("/home/jhkim/ISR_Run2/fake/FakeRate/data/muon/2018/TL_SS.root", "Detector", "Muon", "Pt", true);
 
     opposite_sign.setMCHistInfo();
     same_sign.setMCHistInfo();
@@ -18,6 +18,6 @@ void Pt_Test(TString massBin = "0")
     // saveFakeEstimation("histo_QCDnominal"); 
     // Get Mass bin,
     // Create histogram 
-    //opposite_sign.saveFakeEstimation("histo_QCDnominal", massBin);
-    opposite_sign.saveFakeEstimation("histo_WJetnominal", massBin);
+    opposite_sign.saveFakeEstimation("histo_QCDnominal", massBin);
+    //opposite_sign.saveFakeEstimation("histo_WJetnominal", massBin);
 }

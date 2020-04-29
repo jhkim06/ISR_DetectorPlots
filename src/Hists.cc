@@ -1,4 +1,6 @@
 #include "../include/Hists.h"
+#include "./tdrStyle/tdrstyle.C"
+#include "./tdrStyle/CMS_lumi.C"
 
 void Hists::setMassBindEdges()
 {
@@ -24,7 +26,7 @@ void Hists::setMassBindEdges()
 void Hists::setDataHist()
 {
     cout << "Hists::setDataHist " << endl;
-    hData = (TH1*) inFile->Get(histDir+"/"+var+"/"+"histo_Double"+channel_postfixData+"nominal");
+    hData = (TH1*) inFile->Get(histDir+"/"+var+"/"+"histo_"+channel_postfixData+"nominal");
 }
 
 void Hists::setMCHistInfo()
@@ -44,19 +46,32 @@ void Hists::setMCHistInfo(std::pair<TString, TString> mcInfo)
     bkgTypes.push_back(mcInfo.second);
 }
 
-TCanvas* Hists::drawHists(TString steering, bool useAxis)
+TCanvas* Hists::drawHists(TString steering, bool useAxis, TString postfix)
 {
+
+    setTDRStyle();
+    writeExtraText = true;
+    extraText  = "work in progress";
+
     TH1::AddDirectory(kFALSE);
+    
+    double minX = 50.;
+    double maxX = 320.;
+
+    if(!isEstimation)
+    {
+        if(channel=="Muon" && var =="Mass")
+            minX = 40.;
+    }
 
     TH1* hMCtotal = NULL;
     TH1* hRatio = NULL;
 
     cout << "Hists::drawHists get Data and MC histograms" << endl;
-    hData = getRawHist("histo_DoubleMuonnominal", "Data", steering, useAxis);
-    hMCSig = getRawHist("histo_DYJetsToMuMunominal", "Signal", steering, useAxis);
+    hData = getRawHist("histo_"+channel_postfixData+"nominal", "Data", steering, useAxis);
+    hMCSig = getRawHist("histo_DYJetsTo"+channel_postfixMC+"nominal", "Signal", steering, useAxis);
     hMCtotal = (TH1*) hMCSig->Clone("hMCtotal");
     hRatio = (TH1*) hData->Clone("hRatio");
-    
 
     TCanvas* c_out = new TCanvas("detector_level", "detector_level", 50, 50, 800, 700);
     c_out->Draw();
@@ -67,8 +82,8 @@ TCanvas* Hists::drawHists(TString steering, bool useAxis)
     pad1->SetTopMargin(0.1);
     pad1->SetTicks(1);
     pad1->SetLogy();
-    if(var=="Mass")
-        pad1->SetLogx();
+    //if(var=="Mass")
+    //    pad1->SetLogx();
     pad1->Draw();
     pad1->cd();
 
@@ -82,16 +97,27 @@ TCanvas* Hists::drawHists(TString steering, bool useAxis)
     hData->SetMaximum(1e8);
     hData->SetMinimum(1e-1);
 
+    if(!isEstimation && var=="Mass") hData->GetXaxis()->SetRangeUser(minX, maxX);
     hMCSig->SetFillColor(kYellow);
 
+    TLegend* leg = new TLegend(0.65, 0.65, 0.85, 0.85,"","brNDC");
+    //leg->SetNColumns(2);
+    leg->SetTextSize(0.04);
+    leg->SetFillStyle(0); // transparent
+    leg->SetBorderSize(0);
+
+    leg->AddEntry(hData, "Data", "pe");
+    leg->AddEntry(hMCSig, "DY", "F");
+
     THStack* hsMC = new THStack("hsMC", "hsMC");
-    cout << "Set THStack" << endl;
-    setTHStack(*hsMC, *hMCtotal, steering, useAxis);
-    cout << "Done set THStack" << endl;
+    setTHStack(*hsMC, *hMCtotal, *leg, steering, useAxis);
     hsMC->Add(hMCSig);
+
+    leg->Draw();
 
     hsMC->Draw("hist same");
     hData->Draw("p9histe same");
+    pad1->RedrawAxis();
 
 /*
     TLine massEdgeLine;
@@ -110,12 +136,19 @@ TCanvas* Hists::drawHists(TString steering, bool useAxis)
     TPad *pad2 = new TPad("pad2","pad2",0,0,1,0.3);
     pad2->SetTopMargin(0.05);
     pad2->SetBottomMargin(0.2);
-    if(var=="Mass")
-        pad2->SetLogx();
+    //if(var=="Mass")
+    //    pad2->SetLogx();
     pad2->SetTicks(1);
     pad2->SetGridy(1);
     pad2->Draw();
     pad2->cd();
+
+    hRatio->GetXaxis()->SetTitle("Mass [GeV]");
+    if(var=="Pt")
+        hRatio->GetXaxis()->SetTitle("p_{T} bin index");
+    if(isEstimation)
+        hRatio->GetXaxis()->SetTitle("Bin index");
+
 
     hRatio->SetStats(false);
     hRatio->Divide(hMCtotal);
@@ -125,19 +158,26 @@ TCanvas* Hists::drawHists(TString steering, bool useAxis)
     hRatio->SetLineColor(kBlack);
     hRatio->GetYaxis()->SetTitle("Data/MC");
 
-    hRatio->SetMinimum(0.5);
-    hRatio->SetMaximum(1.5);
+    if(!isEstimation && var=="Mass") hRatio->GetXaxis()->SetRangeUser(minX, maxX);
+    hRatio->GetXaxis()->SetNdivisions(510);
+
+    hRatio->SetMinimum(0.7);
+    hRatio->SetMaximum(1.3);
+
 
     c_out->cd();
-    c_out->SaveAs("detector_"+var+".pdf");
+    CMS_lumi( c_out, 7, 0 );
+
+    c_out->SaveAs("detector_"+var+"_"+channel+"_"+postfix+".pdf");
 
     return c_out;
 }
 
-TH1* Hists::getFakeTemplate(bool doSmooth)
+TH1* Hists::getFakeTemplate(bool doSmooth, double scale)
 {
     TH1::AddDirectory(kFALSE);
     TH1* hFakeTemplate = (TH1*) hData->Clone("FakeTemplate");
+    hMCSig->Scale(scale); // FIXME How to handle big normalisation differences  
     hFakeTemplate->Add(hMCSig, -1.);
     hFakeTemplate->Add(hMCBkgs, -1.);
 
@@ -151,10 +191,13 @@ TH1* Hists::getFakeTemplate(bool doSmooth)
 void Hists::doDijetTemplateFit(TH1* hFakeTemplate, TString steering, bool useAxis)
 {
 
+    setTDRStyle();                                                                                                                                                                                                                                                                                                            
+    writeExtraText = true;                                                                                                                                                                                                                                                                                                    
+    extraText  = "work in progress";     
+
     double minFitRange = 0.;
     double maxFitRange = 0.;
 
-    // FIXME Update for pT
     if(var=="Mass")
     {
         minFitRange = binDef->GetGlobalBinNumber(15.01, 10.);
@@ -219,7 +262,7 @@ void Hists::doDijetTemplateFit(TH1* hFakeTemplate, TString steering, bool useAxi
     TPad *c1_1 = new TPad("padc1_1","padc1_1",0.01,0.01,0.99,0.99);
     c1_1->Draw();
     c1_1->cd();
-    c1_1->SetTopMargin(0.01);
+    c1_1->SetTopMargin(0.1);
     c1_1->SetBottomMargin(0.25);
     c1_1->SetRightMargin(0.03);
     c1_1->SetLeftMargin(0.12);
@@ -235,8 +278,23 @@ void Hists::doDijetTemplateFit(TH1* hFakeTemplate, TString steering, bool useAxi
     frame1->Draw(); // Draw frame
     frame1->GetYaxis()->SetTitle("Events");
     frame1->GetXaxis()->SetLabelSize(0);
-    frame1->SetMinimum(1e-5);
+    frame1->SetMinimum(1e-1);
     frame1->SetMaximum(1e8);
+    frame1->GetXaxis()->SetTitle("");
+
+ 
+    hFakeTemplate->SetFillColor(kViolet+2);   
+    hEWK->SetFillColor(kYellow+2);
+    hTop->SetFillColor(kBlue);
+    TLegend* legend = new TLegend(0.65, 0.65, 0.85, 0.85,"","brNDC");  
+    legend->SetTextSize(0.04);
+    legend->SetFillStyle(0); // transparent
+    legend->SetBorderSize(0);
+    legend->AddEntry(hData, "Data", "pe");
+    legend->AddEntry(hEWK, "EWK", "F");
+    legend->AddEntry(hTop, "Top", "F");
+    legend->AddEntry(hFakeTemplate, "Fake", "F");
+    legend->Draw();
 
     //Bottom Pad
     TPad *c1_2 = new TPad("padc1_2","padc1_2",0.,0.01,1.,0.25);
@@ -270,7 +328,13 @@ void Hists::doDijetTemplateFit(TH1* hFakeTemplate, TString steering, bool useAxi
     h_ratio->SetMarkerStyle(20);
     h_ratio->SetStats(kFALSE);
 
+    h_ratio->GetXaxis()->SetTitle("Bin index");
+
     h_ratio->Draw("p");
+
+    c_fit->cd();
+    CMS_lumi( c1_1, 7, 0 );     
+    c_fit->SaveAs("fit_"+var+"_"+channel+".pdf"); 
 }
 
 void Hists::saveFakeEstimation(TString outHistName, TString bin)
@@ -361,7 +425,7 @@ TH1* Hists::getSummedHists(TString bkgType, TString steering, bool useAxis)
     return hBkg;
 }
 
-void Hists::setTHStack(THStack& hs, TH1& hMCtotal, TString steering, bool useAxis)
+void Hists::setTHStack(THStack& hs, TH1& hMCtotal, TLegend& leg, TString steering, bool useAxis)
 {
     TH1::AddDirectory(kFALSE);
     int bkgSize = bkgNames.size();
@@ -371,7 +435,7 @@ void Hists::setTHStack(THStack& hs, TH1& hMCtotal, TString steering, bool useAxi
     cout << "N bkg: " << bkgSize << endl;
     for(int i = 0; i < bkgSize; i++)
     {
-        if(!isEstimation && bkgNames[i] == "WJets_MG") continue;
+        //if(!isEstimation && bkgNames[i] == "WJets_MG") continue;
 
         map<TString, int>::iterator it = bkgTypeN.find(bkgTypes[i]);
         if(it != bkgTypeN.end())
@@ -392,7 +456,7 @@ void Hists::setTHStack(THStack& hs, TH1& hMCtotal, TString steering, bool useAxi
 
     for(int i = 0; i < bkgSize; i++)
     {
-        if(!isEstimation && bkgNames[i] == "WJets_MG") continue;
+        //if(!isEstimation && bkgNames[i] == "WJets_MG") continue;
         cout << i << " " << "histo_"+bkgNames[i]+"nominal" << endl;
         if(isEstimation && bkgTypes[i] == "Fake")
             continue;
@@ -400,6 +464,7 @@ void Hists::setTHStack(THStack& hs, TH1& hMCtotal, TString steering, bool useAxi
         if(isFirstBkg)
         {
             htemp = getRawHist("histo_"+bkgNames[i]+"nominal", "h"+bkgNames[i], steering, useAxis);
+            if(htemp == NULL) continue;
             isFirstBkg = false;
             nthBkg++;
 
@@ -408,6 +473,7 @@ void Hists::setTHStack(THStack& hs, TH1& hMCtotal, TString steering, bool useAxi
         else
         {
             htemp->Add(getRawHist("histo_"+bkgNames[i]+"nominal", "h"+bkgNames[i], steering, useAxis));
+            if(htemp == NULL) continue;
             nthBkg++;
 
             hMCBkgs->Add(htemp);
@@ -421,6 +487,8 @@ void Hists::setTHStack(THStack& hs, TH1& hMCtotal, TString steering, bool useAxi
             hs.Add(htemp);
             hMCtotal.Add(htemp);
 
+            leg.AddEntry(htemp, bkgTypes[i], "F");
+
             isFirstBkg = true;
             nthBkg = 0;
         }
@@ -432,6 +500,8 @@ TH1* Hists::getRawHist(TString histName, TString outHistName, TString steering, 
     TH1::AddDirectory(kFALSE);
 
     TH1* raw_hist = (TH1*)inFile->Get(histDir+"/"+var+"/"+histName);
+    if(raw_hist == NULL) return NULL;
+
     if(histName.Contains("DYJetsTo") && !histName.Contains("Tau"))
     {
         histName.ReplaceAll("DYJetsTo", "DYJets10to50To");
